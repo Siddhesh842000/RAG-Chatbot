@@ -16,7 +16,7 @@ export default function Sources({ sources }) {
 
   return (
     <div className="mt-2.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Sources</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">Sources</p>
 
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {pages.map((p) => (
@@ -29,18 +29,15 @@ export default function Sources({ sources }) {
         ))}
       </div>
 
-      <details className="mt-2 text-xs text-zinc-400">
-        <summary className="cursor-pointer select-none py-1 text-zinc-500 hover:text-zinc-300">
+      <details className="mt-2 text-xs text-muted">
+        <summary className="cursor-pointer select-none py-1 text-subtle hover:text-fg">
           View passages
         </summary>
         <ul className="mt-2 space-y-2">
           {pages.flatMap((p) =>
             p.snippets.map((snippet, index) => (
-              <li
-                key={`${p.key}-${index}`}
-                className="rounded-xl border border-white/10 bg-black/40 p-2.5"
-              >
-                <span className="font-medium text-zinc-300">
+              <li key={`${p.key}-${index}`} className="rounded-xl border border-line bg-field p-2.5">
+                <span className="font-medium text-fg">
                   {p.document} - page {p.page}
                 </span>
                 <p className="mt-1 whitespace-pre-wrap break-words">{snippet}</p>

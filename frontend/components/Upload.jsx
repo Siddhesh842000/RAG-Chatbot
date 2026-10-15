@@ -62,14 +62,15 @@ export default function Upload({ onUpload, status, message, doc }) {
 
   const bannerStyles = {
     loading: "border-accent/30 bg-accent/10 text-accent",
-    success: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-    error: "border-red-400/30 bg-red-500/10 text-red-300",
+    success:
+      "border-emerald-600/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/30 dark:text-emerald-300",
+    error: "border-red-500/40 bg-red-500/10 text-red-800 dark:border-red-400/30 dark:text-red-300",
   };
 
   return (
     <section className="surface p-4 sm:p-5">
-      <h2 className="text-base font-semibold text-white">1. Upload your PDF</h2>
-      <p className="mt-0.5 text-sm text-zinc-500">Text PDFs only, up to {MAX_FILE_MB} MB.</p>
+      <h2 className="text-base font-semibold text-fg">1. Upload your PDF</h2>
+      <p className="mt-0.5 text-sm text-subtle">Text PDFs only, up to {MAX_FILE_MB} MB.</p>
 
       <div className="mt-4 space-y-3">
         <input
@@ -92,7 +93,7 @@ export default function Upload({ onUpload, status, message, doc }) {
             Choose PDF
           </label>
 
-          <span className="min-w-0 flex-1 truncate text-sm text-zinc-400">
+          <span className="min-w-0 flex-1 truncate text-sm text-muted">
             {file ? file.name : "No file chosen"}
           </span>
         </div>
@@ -104,7 +105,7 @@ export default function Upload({ onUpload, status, message, doc }) {
           className="btn-primary w-full"
         >
           {uploading && (
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-on-accent border-t-transparent" />
           )}
           {uploading ? "Processing..." : "Upload PDF"}
         </button>
@@ -121,10 +122,10 @@ export default function Upload({ onUpload, status, message, doc }) {
       )}
 
       {doc && (
-        <p className="mt-3 flex items-start gap-2 text-sm text-zinc-400">
+        <p className="mt-3 flex items-start gap-2 text-sm text-muted">
           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-hidden="true" />
           <span className="min-w-0 break-words">
-            Ready: <span className="font-medium text-white">{doc.filename}</span> - {doc.pages}{" "}
+            Ready: <span className="font-medium text-fg">{doc.filename}</span> - {doc.pages}{" "}
             pages, {doc.chunks} chunks
           </span>
         </p>

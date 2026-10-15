@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Chat from "@/components/Chat";
-import HowItWorks from "@/components/HowItWorks";
 import ThemePicker from "@/components/ThemePicker";
 import Upload from "@/components/Upload";
 import { askQuestion, clearDocument, uploadPdf } from "@/lib/api";
@@ -87,7 +86,7 @@ export default function Home() {
           <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
             <span className="text-gradient">RAG Chatbot</span>
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-zinc-400">
+          <p className="mt-2 max-w-xl text-sm text-muted">
             Upload a PDF and ask questions about it. Answers come only from your document and show
             the source pages.
           </p>
@@ -104,7 +103,6 @@ export default function Home() {
             message={upload.message}
             doc={doc}
           />
-          <HowItWorks />
         </div>
 
         <Chat
@@ -116,7 +114,7 @@ export default function Home() {
         />
       </main>
 
-      <footer className="mt-8 text-center text-xs text-zinc-600">
+      <footer className="mt-8 text-center text-xs text-faint">
         Built with Next.js, FastAPI, FAISS and Groq
       </footer>
     </div>

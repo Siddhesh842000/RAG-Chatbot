@@ -33,8 +33,8 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
 
   return (
     <section className="surface flex h-[72dvh] max-h-[46rem] min-h-[26rem] flex-col overflow-hidden lg:h-[calc(100dvh-11.5rem)] lg:max-h-none lg:min-h-[32rem]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-        <h2 className="text-base font-semibold text-white">2. Ask questions</h2>
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <h2 className="text-base font-semibold text-fg">2. Ask questions</h2>
         <button type="button" onClick={onClear} disabled={!canClear} className="btn-ghost !px-3 !py-1.5">
           Clear
         </button>
@@ -43,12 +43,12 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
       <div ref={listRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
         {messages.length === 0 && !loading && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <div className="bg-accent-gradient flex h-12 w-12 items-center justify-center rounded-2xl text-black">
+            <div className="bg-accent-gradient flex h-12 w-12 items-center justify-center rounded-2xl text-on-accent">
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
               </svg>
             </div>
-            <p className="max-w-xs text-sm text-zinc-400">
+            <p className="max-w-xs text-sm text-muted">
               {hasDocument
                 ? "Your PDF is ready. Ask a question about it."
                 : "Upload a PDF to start chatting."}
@@ -62,7 +62,7 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
 
         {loading && (
           <div className="flex justify-start" role="status" aria-label="The assistant is thinking">
-            <div className="flex items-center gap-3 rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.06] px-4 py-3">
+            <div className="flex items-center gap-3 rounded-2xl rounded-bl-md border border-line bg-bubble px-4 py-3">
               <div className="flex items-center gap-1.5">
                 {[0, 150, 300].map((delay) => (
                   <span
@@ -73,7 +73,7 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
                 ))}
               </div>
               {slow && (
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-subtle">
                   Taking longer than usual - the server may be waking up...
                 </span>
               )}
@@ -84,7 +84,7 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
 
       <form
         onSubmit={handleSubmit}
-        className="flex gap-2 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
+        className="flex gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4"
       >
         <input
           ref={inputRef}
@@ -94,7 +94,7 @@ export default function Chat({ messages, loading, hasDocument, onSend, onClear }
           disabled={!hasDocument}
           maxLength={1000}
           placeholder={hasDocument ? "Ask a question about your PDF..." : "Upload a PDF first"}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-base text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+          className="min-w-0 flex-1 rounded-xl border border-line-strong bg-field px-3.5 py-2.5 text-base text-fg outline-none placeholder:text-subtle focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         />
         <button
           type="submit"

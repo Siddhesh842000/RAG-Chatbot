@@ -1,62 +1,157 @@
 @import "tailwindcss";
 
-/* Lets us write classes like text-accent, border-accent/40, bg-accent/10 */
+/* "dark:" classes apply when <html data-mode="dark"> */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+/* Lets us write classes like text-fg, bg-card, border-line, text-accent/80 ... */
 @theme inline {
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-card: var(--card);
+  --color-field: var(--field);
+  --color-hover: var(--hover);
+  --color-bubble: var(--bubble);
   --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
 }
 
 /* ------------------------------------------------------------------
-   Color themes. The data-theme attribute is set on <html>.
-   --accent       one solid color (chips, focus rings, small details)
-   --accent-from / -via / -to   the three colors of the gradient
+   MODE: the base colors (black or white page)
 ------------------------------------------------------------------- */
 :root,
+[data-mode="dark"] {
+  color-scheme: dark;
+  --page: #000000;
+  --panel: #0b0b0d;
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --subtle: #8a8a94;
+  --faint: #5f5f68;
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.17);
+  --card: rgb(255 255 255 / 0.04);
+  --field: rgb(255 255 255 / 0.05);
+  --hover: rgb(255 255 255 / 0.09);
+  --bubble: rgb(255 255 255 / 0.06);
+  --shadow: rgb(0 0 0 / 0.5);
+  --glow-a: 20%;
+  --glow-b: 17%;
+}
+
+[data-mode="light"] {
+  color-scheme: light;
+  --page: #f6f6f7;
+  --panel: #ffffff;
+  --fg: #0a0a0b;
+  --muted: #52525b;
+  --subtle: #6b6b75;
+  --faint: #8e8e98;
+  --line: rgb(0 0 0 / 0.11);
+  --line-strong: rgb(0 0 0 / 0.2);
+  --card: #ffffff;
+  --field: rgb(0 0 0 / 0.04);
+  --hover: rgb(0 0 0 / 0.06);
+  --bubble: #efeff1;
+  --shadow: rgb(20 20 30 / 0.1);
+  --glow-a: 14%;
+  --glow-b: 12%;
+}
+
+/* ------------------------------------------------------------------
+   THEME: the accent colors.
+   --accent                     one solid color (chips, focus rings)
+   --accent-from / -via / -to   the three colors of the gradient
+   --on-accent                  text color placed on top of the gradient
+------------------------------------------------------------------- */
+:root,
+[data-theme="mono"] {
+  --accent: #e4e4e7;
+  --accent-from: #ffffff;
+  --accent-via: #d4d4d8;
+  --accent-to: #a1a1aa;
+  --on-accent: #000000;
+  --glow-a: 7%;
+  --glow-b: 6%;
+}
+[data-mode="light"][data-theme="mono"] {
+  --accent: #18181b;
+  --accent-from: #52525b;
+  --accent-via: #27272a;
+  --accent-to: #09090b;
+  --on-accent: #ffffff;
+  --glow-a: 6%;
+  --glow-b: 5%;
+}
+
 [data-theme="aurora"] {
   --accent: #a78bfa;
   --accent-from: #22d3ee;
   --accent-via: #a78bfa;
   --accent-to: #f472b6;
+  --on-accent: #000000;
+  --glow-a: 20%;
+  --glow-b: 17%;
 }
+[data-mode="light"][data-theme="aurora"] { --accent: #7c3aed; --glow-a: 14%; --glow-b: 12%; }
 
 [data-theme="ocean"] {
   --accent: #38bdf8;
   --accent-from: #2dd4bf;
   --accent-via: #38bdf8;
   --accent-to: #6366f1;
+  --on-accent: #000000;
+  --glow-a: 20%;
+  --glow-b: 17%;
 }
+[data-mode="light"][data-theme="ocean"] { --accent: #0369a1; --glow-a: 14%; --glow-b: 12%; }
 
 [data-theme="emerald"] {
   --accent: #34d399;
   --accent-from: #bef264;
   --accent-via: #34d399;
   --accent-to: #22d3ee;
+  --on-accent: #000000;
+  --glow-a: 20%;
+  --glow-b: 17%;
 }
+[data-mode="light"][data-theme="emerald"] { --accent: #047857; --glow-a: 14%; --glow-b: 12%; }
 
 [data-theme="sunset"] {
   --accent: #fb7185;
   --accent-from: #fbbf24;
   --accent-via: #fb7185;
   --accent-to: #e879f9;
+  --on-accent: #000000;
+  --glow-a: 20%;
+  --glow-b: 17%;
 }
+[data-mode="light"][data-theme="sunset"] { --accent: #be123c; --glow-a: 14%; --glow-b: 12%; }
 
 [data-theme="gold"] {
   --accent: #fbbf24;
   --accent-from: #fde047;
   --accent-via: #fbbf24;
   --accent-to: #fb923c;
+  --on-accent: #000000;
+  --glow-a: 20%;
+  --glow-b: 17%;
 }
+[data-mode="light"][data-theme="gold"] { --accent: #a16207; --glow-a: 14%; --glow-b: 12%; }
 
 /* ------------------------------ Base ------------------------------ */
-:root {
-  color-scheme: dark;
-}
-
 body {
-  background-color: #000;
+  background-color: var(--page);
+  color: var(--fg);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Soft colored glow behind the page, using the theme colors */
+/* Soft glow behind the page, using the theme colors */
 body::before {
   content: "";
   position: fixed;
@@ -64,13 +159,13 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(48rem 26rem at 12% -8%, color-mix(in srgb, var(--accent-from) 20%, transparent), transparent 70%),
-    radial-gradient(44rem 26rem at 92% -4%, color-mix(in srgb, var(--accent-to) 17%, transparent), transparent 70%);
+    radial-gradient(48rem 26rem at 12% -8%, color-mix(in srgb, var(--accent-from) var(--glow-a), transparent), transparent 70%),
+    radial-gradient(44rem 26rem at 92% -4%, color-mix(in srgb, var(--accent-to) var(--glow-b), transparent), transparent 70%);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+  scrollbar-color: color-mix(in srgb, var(--fg) 25%, transparent) transparent;
 }
 
 ::selection {
@@ -100,14 +195,15 @@ body::before {
 
 @layer components {
   .surface {
-    @apply rounded-2xl border border-white/10 bg-white/[0.04] shadow-xl shadow-black/50 backdrop-blur-sm;
+    @apply rounded-2xl border border-line bg-card backdrop-blur-sm;
+    box-shadow: 0 20px 25px -5px var(--shadow), 0 8px 10px -6px var(--shadow);
   }
 
   .btn-primary {
-    @apply bg-accent-gradient inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-black transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
+    @apply bg-accent-gradient inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-on-accent transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-field px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
 }
