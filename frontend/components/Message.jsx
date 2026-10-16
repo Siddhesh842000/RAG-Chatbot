@@ -1,3 +1,4 @@
+import Markdown from "./Markdown";
 import Sources from "./Sources";
 
 // One chat message: a user question or an assistant answer.
@@ -26,14 +27,19 @@ export default function Message({ message }) {
       "border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200";
   }
 
+  // Real answers can contain formatting (Markdown). Errors and "not found" stay plain text.
+  const plain = isError || notFound;
+
   return (
     <div className="flex justify-start">
       <div className="max-w-[94%] sm:max-w-[85%]">
         <div
-          className={`whitespace-pre-wrap break-words rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed ${bubbleStyle}`}
+          className={`break-words rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed ${
+            plain ? "whitespace-pre-wrap" : ""
+          } ${bubbleStyle}`}
         >
           {isError && <span className="font-semibold">Error: </span>}
-          {message.content}
+          {plain ? message.content : <Markdown>{message.content}</Markdown>}
         </div>
 
         {!isError && message.found && <Sources sources={message.sources} />}
