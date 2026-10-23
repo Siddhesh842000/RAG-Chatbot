@@ -28,6 +28,7 @@ Upload a PDF, ask questions about it, and get answers that come **only from your
 17. [Limitations](#17-limitations)
 18. [Future improvements](#18-future-improvements)
 19. [Interview explanation](#19-interview-explanation)
+20. [Changelog](#20-changelog)
 
 ---
 
@@ -38,7 +39,7 @@ Upload a PDF, ask questions about it, and get answers that come **only from your
 This project is a complete, end-to-end implementation:
 
 - A **FastAPI** backend that reads PDFs, splits them into chunks, turns the chunks into vectors, stores them in **FAISS**, and asks **GPT-OSS 120B on Groq** to answer.
-- A **Next.js** frontend with a clean, responsive chat interface and a theme switcher.
+- A **Next.js** frontend with a clean, responsive chat interface, nicely formatted answers, and a black-and-white theme switcher.
 - Careful error handling, tests for every stage, and a design that fits **free hosting** (Render and Vercel).
 
 ---
@@ -49,6 +50,7 @@ This project is a complete, end-to-end implementation:
 
 - Upload a text-based PDF (up to 10 MB and 100 pages).
 - Ask questions in plain English and get short, clear answers.
+- **Formatted answers:** bold text, bullet lists, numbered steps, code and tables are shown properly. Raw HTML inside an answer is never executed, so text hidden in a PDF cannot run code in the page.
 - **Source pages** are shown under each answer, with a "View passages" section that shows the exact text used.
 - **Honest "not found" answers:** when the document does not contain the answer, the reply is a fixed sentence and no sources are shown.
 - **Clear** button removes the document and the conversation.
@@ -91,6 +93,7 @@ Add your own screenshots to a `docs/screenshots/` folder and link them here.
 | Layer | Technology | Why |
 |---|---|---|
 | Frontend | **Next.js 16**, **React 19**, **Tailwind CSS 4** | Fast, simple to deploy on Vercel |
+| Answer formatting | **react-markdown** + **remark-gfm** | Shows bold, lists, code and tables safely (no raw HTML) |
 | Backend | **Python**, **FastAPI**, **Uvicorn**, **Pydantic** | Clean typed API with automatic Swagger docs |
 | PDF reading | **PyMuPDF** | Fast, reliable text extraction with page numbers |
 | Embeddings | **sentence-transformers** `all-MiniLM-L6-v2` (384 numbers per text) | Small, fast, runs on a normal CPU |
@@ -206,6 +209,7 @@ Hallucination means the model states something that is not in the document. Seve
 | **Upload limits (10 MB, 100 pages)** | Protects the small free server from slow or huge jobs. |
 | **All network calls in one frontend file (`lib/api.js`)** | The screens never talk to the server directly, which keeps them simple and easy to test. |
 | **Groq key only on the backend** | Keys in browser code can be stolen by anyone. |
+| **Markdown without raw HTML** | The AI writes Markdown (bold, lists). Showing it as real formatting is easier to read, and blocking HTML keeps the page safe from content hidden in a PDF. |
 
 ---
 
@@ -241,6 +245,7 @@ RAG Chatbot/
 │   ├── test_llm.py                 # Phase 6 tests (needs Groq key)
 │   ├── test_api.py                 # Phase 7 tests of the full API (needs Groq key)
 │   ├── requirements.txt
+│   ├── run.bat                     # Windows launcher you create yourself (not committed)
 │   ├── .env.example                # template, safe to commit
 │   └── .env                        # your real key, NEVER committed
 │
@@ -255,6 +260,7 @@ RAG Chatbot/
     │   ├── Chat.jsx                # messages, loading dots, input, Clear
     │   ├── Message.jsx             # one user/assistant message
     │   ├── Sources.jsx             # source page chips + passages
+    │   ├── Markdown.jsx            # formats the AI's answer (bold, lists, code, tables)
     │   └── ThemePicker.jsx         # theme dropdown (mode + color)
     ├── lib/
     │   ├── api.js                  # the only file that calls the backend
@@ -310,6 +316,15 @@ Wait for `Application startup complete`. The first start downloads the embedding
 
 > **Always start the backend with `venv\Scripts\python.exe -m uvicorn ...`.** If you have Anaconda installed, a plain `uvicorn` command may use Anaconda's Python, which does not have the project's packages (you will see `No module named 'faiss'`).
 
+To avoid typing it each time, create a small launcher once. It is not committed to Git:
+
+```cmd
+echo @echo off> run.bat
+echo venv\Scripts\python.exe -m uvicorn app.main:app --reload>> run.bat
+```
+
+From then on, start the backend by typing `run.bat` inside the `backend` folder.
+
 On macOS or Linux:
 
 ```bash
@@ -323,7 +338,7 @@ python -m uvicorn app.main:app --reload
 
 ### Frontend setup
 
-Open a **second** terminal:
+Open a **second** terminal and run everything inside the `frontend` folder (the one that contains `package.json`):
 
 ```cmd
 cd frontend
@@ -531,6 +546,8 @@ Expected result of each script: `N of N checks passed`.
 
 ### Frontend checks
 
+For a clean install that exactly matches `package-lock.json`, use `npm ci` first.
+
 ```cmd
 cd frontend
 npm run lint
@@ -562,6 +579,8 @@ GitHub  ->  Render (backend)  ->  Vercel (frontend)
 
 Deploy the **backend first**, because the frontend needs its address.
 
+**Why two hosts?** Vercel is built for Next.js websites and has a free Hobby plan for personal projects. It runs code as short-lived functions, so it cannot keep a document in memory between requests or hold the embedding model. The Python backend therefore runs on Render, which runs a normal server (on the free plan it sleeps when idle).
+
 ### 1. Push to GitHub
 
 Make sure `.env`, `.env.local`, `venv/`, `node_modules/` and `.next/` are **not** committed (they are listed in `.gitignore`). Then push the repository.
@@ -591,7 +610,7 @@ Environment variables on Render:
 Notes for the free plan:
 
 - The free server **sleeps after about 15 minutes without traffic**. The first request after sleeping can take around a minute. The app shows a hint for this.
-- Memory is limited (512 MB). PyTorch plus the embedding model use a large part of it. If the build or the server runs out of memory, use the **CPU-only PyTorch** build (add `--extra-index-url https://download.pytorch.org/whl/cpu` at the top of `requirements.txt`), or move to a paid instance.
+- The free web service has **512 MB of memory and a very small share of a CPU (about 0.1)**. PyTorch plus the embedding model is heavy for that, so loading can be slow or the server can run out of memory. If that happens, in this order: (1) use the **CPU-only PyTorch** build (add `--extra-index-url https://download.pytorch.org/whl/cpu` at the top of `requirements.txt`); (2) run the same `all-MiniLM-L6-v2` model through **ONNX** (for example with the `fastembed` library), which uses far less memory; (3) use a host with more memory.
 - Documents live in memory only, so a restart or sleep removes them. Visitors simply upload again.
 
 ### 3. Frontend on Vercel
@@ -632,6 +651,10 @@ Open the Vercel address, upload a PDF, ask a question, ask an unrelated question
 | Warning about symlinks on Windows | Harmless. Caching still works. |
 | `Blocked cross-origin request to Next.js dev resource` | You opened the app through a network address. Use `http://localhost:3000`. |
 | First backend start takes a long time | The embedding model (about 90 MB) is downloading. Later starts are fast. |
+| `npm error ... Could not read package.json` (ENOENT) | You ran the command in the wrong folder. Run `cd frontend` first (the folder that contains `package.json`). |
+| `npm ci` says `Missing: @emnapi/... from lock file` | The lockfile is out of sync (this can happen when packages are added on another operating system). In `frontend`, delete `node_modules` and `package-lock.json`, run `npm install`, check with `npm ci`, and commit the new lockfile. |
+| Answers show raw `**` symbols | You have an old frontend. Run `npm install` in `frontend` (it adds `react-markdown` and `remark-gfm`) and restart `npm run dev`. |
+| Plain `uvicorn ...` fails again and again | It starts the wrong Python. Use `run.bat` (see Installation) or `venv\Scripts\python.exe -m uvicorn app.main:app --reload`. |
 
 ---
 
@@ -649,7 +672,7 @@ Being honest about limits is part of a good design:
 - **English-focused embeddings.** `all-MiniLM-L6-v2` works best for English documents and questions.
 - **Chunks do not cross pages.** A sentence that continues onto the next page is split.
 - **Source filtering is a rule of thumb.** The 60% rule works well in tests but is not perfect for every question.
-- **Plain-text answers.** The interface does not render Markdown tables or formatting.
+- **Basic formatting only.** Answers support bold, lists, code and tables, but not images or math.
 - **Session ids are not authentication.** They separate visitors but do not protect against someone who copies an id.
 - **No rate limiting per user.** The Groq free tier limit is shared by everyone using the demo.
 
@@ -667,7 +690,7 @@ Being honest about limits is part of a good design:
 - **Evaluation:** a test set of questions with expected answers and automatic scoring (for example RAGAS).
 - **Authentication and per-user rate limits.**
 - **Docker** setup and **GitHub Actions** to run the tests on every push.
-- **Markdown rendering** of answers.
+- **Math and code highlighting** in answers (basic Markdown formatting already works).
 - **Multi-language support** with a multilingual embedding model.
 
 ---
@@ -676,7 +699,7 @@ Being honest about limits is part of a good design:
 
 ### 60-second pitch
 
-> "I built a RAG chatbot where you upload a PDF and ask questions about it. The backend is FastAPI. It reads the PDF with PyMuPDF, splits each page into 500-character chunks with 100 characters of overlap, turns the chunks into 384-number embeddings with the MiniLM model, and stores them in a FAISS index. When you ask a question, I embed it, find the 5 most similar chunks, and send them to GPT-OSS 120B on Groq with a strict prompt that says to answer only from the context. The response includes the answer and the source pages. If the answer is not in the document, it says so and shows no sources. The frontend is Next.js with Tailwind and a theme switcher. I deployed the backend on Render and the frontend on Vercel, and I designed it for free hosting: the model is small, the index lives in memory, each visitor has their own session, and the Groq key never leaves the server."
+> "I built a RAG chatbot where you upload a PDF and ask questions about it. The backend is FastAPI. It reads the PDF with PyMuPDF, splits each page into 500-character chunks with 100 characters of overlap, turns the chunks into 384-number embeddings with the MiniLM model, and stores them in a FAISS index. When you ask a question, I embed it, find the 5 most similar chunks, and send them to GPT-OSS 120B on Groq with a strict prompt that says to answer only from the context. The response includes the answer and the source pages. If the answer is not in the document, it says so and shows no sources. The frontend is Next.js with Tailwind and a theme switcher. It is built for free hosting, with the backend on Render and the frontend on Vercel: the model is small, the index lives in memory, each visitor has their own session, and the Groq key never leaves the server."
 
 ### Key points to remember
 
@@ -688,6 +711,22 @@ Being honest about limits is part of a good design:
 - **How are hallucinations reduced?** Strict prompt, fixed "not found" sentence, low temperature, skipping the LLM when nothing is retrieved, ignoring instructions hidden in documents, and tests for all of this.
 - **Biggest trade-offs:** in-memory storage (simple and free, but lost on restart), no OCR, no chat memory.
 - **How would you improve it for production?** Persistent storage, a re-ranker, hybrid search, streaming, authentication and rate limits, automated evaluation, Docker and CI.
+
+---
+
+## 20. Changelog
+
+| Stage | What was done |
+|---|---|
+| Backend foundation | FastAPI project, health endpoints, settings and CORS |
+| RAG pipeline | PDF extraction with page numbers, chunking, embeddings, FAISS search, Groq answers, each stage tested on its own |
+| Full API | Upload, chat and clear endpoints with error codes and one document per visitor, tested end to end |
+| Frontend | Next.js interface connected to the API |
+| Quality fixes | Weak source pages hidden (60% rule), message when the server forgot the document, hint when the free server is waking up |
+| Interface | Black-and-white default with a Theme dropdown (Black or White mode plus six colors), responsive layout |
+| Answer formatting | Markdown answers (bold, lists, code, tables) rendered safely, with no raw HTML |
+| GitHub | Code pushed, secrets kept out, lockfile fixed so `npm ci` works |
+| Next | Deployment on Render and Vercel (a lighter ONNX embedding runtime is the fallback if Render's free memory is too small), then the live demo link and screenshots |
 
 ---
 
