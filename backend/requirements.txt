@@ -1,3 +1,7 @@
+# On Linux servers (like Render), this makes pip choose the small CPU-only PyTorch
+# instead of the huge GPU build. On Windows it changes nothing for you.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi
 uvicorn[standard]
 python-dotenv

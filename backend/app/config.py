@@ -9,6 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Read the .env file
 load_dotenv(BASE_DIR / ".env")
 
+# Optional: a folder (relative to backend/) where the embedding model is stored.
+# Empty means the normal Hugging Face cache. On Render we set it so the model is
+# downloaded once during the build and kept with the app.
+_model_cache = os.getenv("MODEL_CACHE_DIR", "").strip()
+
 
 class Settings:
     """All app settings in one place."""
@@ -35,6 +40,9 @@ class Settings:
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIM: int = 384  # all-MiniLM-L6-v2 makes vectors of 384 numbers
     EMBEDDING_BATCH_SIZE: int = 32
+    MODEL_CACHE_DIR: str | None = (
+        str((BASE_DIR / _model_cache).resolve()) if _model_cache else None
+    )
 
     # RAG settings
     CHUNK_SIZE: int = 500

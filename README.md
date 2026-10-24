@@ -245,6 +245,7 @@ RAG Chatbot/
 │   ├── test_llm.py                 # Phase 6 tests (needs Groq key)
 │   ├── test_api.py                 # Phase 7 tests of the full API (needs Groq key)
 │   ├── requirements.txt
+│   ├── download_model.py           # downloads the embedding model during the Render build
 │   ├── run.bat                     # Windows launcher you create yourself (not committed)
 │   ├── .env.example                # template, safe to commit
 │   └── .env                        # your real key, NEVER committed
@@ -383,6 +384,7 @@ Open **<http://localhost:3000>**. Use `localhost` exactly. The backend only acce
 | `GROQ_API_KEY` | **Yes** | none | Your Groq key. Keep it secret. |
 | `GROQ_MODEL` | No | `openai/gpt-oss-120b` | The Groq model name. |
 | `ALLOWED_ORIGINS` | No | `http://localhost:3000` | Websites allowed to call the API (CORS). Use commas for several, for example `http://localhost:3000,https://your-app.vercel.app`. |
+| `MODEL_CACHE_DIR` | No | empty | Folder (relative to `backend/`) where the embedding model is stored. Empty uses the normal Hugging Face cache. Used on Render. |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -593,7 +595,7 @@ Create a new **Web Service** from your GitHub repository.
 |---|---|
 | Root Directory | `backend` |
 | Runtime | Python |
-| Build Command | `pip install -r requirements.txt` |
+| Build Command | `pip install -r requirements.txt && python download_model.py` |
 | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | Health Check Path | `/health` |
 | Instance type | Free |
@@ -606,6 +608,7 @@ Environment variables on Render:
 | `GROQ_MODEL` | `openai/gpt-oss-120b` |
 | `ALLOWED_ORIGINS` | your Vercel address (set after step 3) |
 | `PYTHON_VERSION` | the Python version you used locally, for example `3.13.9` |
+| `MODEL_CACHE_DIR` | `.model_cache` (the model is downloaded during the build and kept with the app) |
 
 Notes for the free plan:
 

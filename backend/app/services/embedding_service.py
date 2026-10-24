@@ -16,7 +16,9 @@ def get_model() -> SentenceTransformer:
     if _model is None:
         with _lock:  # stops two requests from loading it at the same time
             if _model is None:
-                _model = SentenceTransformer(settings.EMBEDDING_MODEL)
+                _model = SentenceTransformer(
+                    settings.EMBEDDING_MODEL, cache_folder=settings.MODEL_CACHE_DIR
+                )
     return _model
 
 
