@@ -40,6 +40,7 @@ class Settings:
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIM: int = 384  # all-MiniLM-L6-v2 makes vectors of 384 numbers
     EMBEDDING_BATCH_SIZE: int = 32
+    EMBEDDING_THREADS: int = 1  # 1 is best on small servers
     MODEL_CACHE_DIR: str | None = (
         str((BASE_DIR / _model_cache).resolve()) if _model_cache else None
     )

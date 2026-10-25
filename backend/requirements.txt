@@ -1,14 +1,11 @@
-# On Linux servers (like Render), this makes pip choose the small CPU-only PyTorch
-# instead of the huge GPU build. On Windows it changes nothing for you.
---extra-index-url https://download.pytorch.org/whl/cpu
-
-fastapi
-uvicorn[standard]
-python-dotenv
-python-multipart
-pydantic
-pymupdf
-numpy
-sentence-transformers
-faiss-cpu
-groq
+# Exact versions, so your PC and the server always use the same, tested packages.
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+python-dotenv==1.2.4
+python-multipart==0.0.32
+pydantic==2.14.1
+pymupdf==1.28.2
+numpy==2.5.4
+fastembed==0.9.1
+faiss-cpu==1.15.1
+groq==1.7.0
