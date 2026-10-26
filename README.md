@@ -753,11 +753,3 @@ Being honest about limits is part of a good design:
 | Deployment | Backend on Render (free) and frontend on Vercel (free). PyTorch failed on the free server, so embeddings now run through ONNX (`fastembed`) with the same model |
 | Next | Screenshots, and the optional improvements listed above |
 
----
-
-## Author
-
-Built by **Siddhesh** as an AI/ML portfolio project.
-
-- GitHub: <https://github.com/Siddhesh842000>
-- LinkedIn: `<your-profile-link>`
