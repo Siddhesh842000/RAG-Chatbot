@@ -2,8 +2,11 @@
 
 Upload a PDF, ask questions about it, and get answers that come **only from your document**, with the **source page numbers** shown next to every answer. If the answer is not in the PDF, the chatbot says so instead of inventing one.
 
-**Live demo:** `<add your Vercel link after deployment>`
-**GitHub repository:** <https://github.com/Siddhesh842000/RAG-Chatbot>
+- **Live demo:** <https://rag-chatbot-jgo6.vercel.app>
+- **Backend API docs:** <https://rag-chatbot-slwm.onrender.com/docs>
+- **GitHub repository:** <https://github.com/Siddhesh842000/RAG-Chatbot>
+
+> The backend runs on a free server that sleeps when nobody uses it. The first request after a quiet period can take about a minute, and the app shows a hint while it wakes up.
 
 ---
 
@@ -96,7 +99,7 @@ Add your own screenshots to a `docs/screenshots/` folder and link them here.
 | Answer formatting | **react-markdown** + **remark-gfm** | Shows bold, lists, code and tables safely (no raw HTML) |
 | Backend | **Python**, **FastAPI**, **Uvicorn**, **Pydantic** | Clean typed API with automatic Swagger docs |
 | PDF reading | **PyMuPDF** | Fast, reliable text extraction with page numbers |
-| Embeddings | **sentence-transformers** `all-MiniLM-L6-v2` (384 numbers per text) | Small, fast, runs on a normal CPU |
+| Embeddings | **fastembed** (ONNX Runtime) running `all-MiniLM-L6-v2` (384 numbers per text) | The same small model as `sentence-transformers`, but it needs far less memory because it does not use PyTorch |
 | Vector search | **FAISS** (`faiss-cpu`) | Fast similarity search, no database to pay for |
 | LLM | **GPT-OSS 120B** (`openai/gpt-oss-120b`) through the **Groq API** | Strong open model, very fast, free tier available |
 | Hosting | Frontend on **Vercel**, backend on **Render**, source on **GitHub** | All have free tiers |
@@ -112,7 +115,7 @@ flowchart LR
     U["User in browser"] --> FE["Next.js frontend (Vercel)"]
     FE -- "HTTPS + X-Session-ID header" --> BE["FastAPI backend (Render)"]
     BE --> PDF["PyMuPDF: read PDF"]
-    BE --> EMB["MiniLM: embeddings"]
+    BE --> EMB["MiniLM embeddings (ONNX)"]
     BE --> FA["FAISS: vector search (in memory)"]
     BE -- "HTTPS, API key stays on the server" --> GQ["Groq: GPT-OSS 120B"]
 ```
@@ -139,7 +142,7 @@ flowchart TD
 2. **Extract.** PyMuPDF reads the PDF and returns one item per page: `{"text", "page", "document"}`. Page numbers start at 1.
 3. **Clean.** Line wraps become spaces, words split by a hyphen at a line end are joined, extra spaces are removed, and real paragraph breaks are kept.
 4. **Chunk.** Each page is split on its own into pieces of at most **500 characters** with **100 characters of overlap**. Splitting happens at sentence boundaries when possible. Because every page is chunked separately, **every chunk keeps exactly one page number**.
-5. **Embed.** Each chunk becomes a vector of 384 numbers using `all-MiniLM-L6-v2`. Vectors are normalized, so a dot product equals cosine similarity.
+5. **Embed.** Each chunk becomes a vector of 384 numbers using `all-MiniLM-L6-v2`, run with ONNX Runtime through `fastembed`. Vectors are normalized, so a dot product equals cosine similarity.
 6. **Store.** Vectors go into a FAISS `IndexFlatIP` (exact search). The chunk text, page and document name are kept in a Python list at the same positions.
 
 ### Chat flow (`POST /api/chat`)
@@ -204,6 +207,8 @@ Hallucination means the model states something that is not in the document. Seve
 | **Chunk each page separately** | Guarantees one page number per chunk, which makes source pages exact. A sentence that runs across a page break is split there. |
 | **Exact search (`IndexFlatIP`)** | A single PDF has hundreds of chunks, so exact search is instant and has no approximation error. |
 | **Embedding model loaded once** | Loading takes seconds. It is loaded in the background at startup and reused for every request. |
+| **ONNX (`fastembed`) instead of PyTorch** | The first deployment used PyTorch, and an upload on Render's free 512 MB server returned a 502 error, which is how running out of memory shows up there. Running the same `all-MiniLM-L6-v2` model with ONNX Runtime fixed it: the install shrank from more than 1 GB to about 225 MB, and the scores and answers stayed the same (all tests still pass). |
+| **Pinned dependencies** | `requirements.txt` lists exact versions, so the server installs the same packages that were tested. |
 | **FAISS index kept in memory** | Render's free filesystem is erased on restart, so saving files would add code for little benefit. The trade-off is that the document must be uploaded again after a restart. |
 | **One index per visitor (session id)** | Prevents two visitors overwriting each other on the live demo. Only the 5 newest sessions are kept to protect memory. |
 | **Upload limits (10 MB, 100 pages)** | Protects the small free server from slow or huge jobs. |
@@ -232,7 +237,7 @@ RAG Chatbot/
 │   │   ├── services/
 │   │   │   ├── pdf_service.py      # PyMuPDF extraction + text cleaning + PDF errors
 │   │   │   ├── chunk_service.py    # sentence-aware chunking with overlap
-│   │   │   ├── embedding_service.py# MiniLM model (loaded once) + embedding helpers
+│   │   │   ├── embedding_service.py# MiniLM model via fastembed/ONNX (loaded once)
 │   │   │   ├── vector_service.py   # FAISS store, one per session
 │   │   │   └── llm_service.py      # Groq client + error mapping
 │   │   └── utils/
@@ -384,7 +389,7 @@ Open **<http://localhost:3000>**. Use `localhost` exactly. The backend only acce
 | `GROQ_API_KEY` | **Yes** | none | Your Groq key. Keep it secret. |
 | `GROQ_MODEL` | No | `openai/gpt-oss-120b` | The Groq model name. |
 | `ALLOWED_ORIGINS` | No | `http://localhost:3000` | Websites allowed to call the API (CORS). Use commas for several, for example `http://localhost:3000,https://your-app.vercel.app`. |
-| `MODEL_CACHE_DIR` | No | empty | Folder (relative to `backend/`) where the embedding model is stored. Empty uses the normal Hugging Face cache. Used on Render. |
+| `MODEL_CACHE_DIR` | No | empty | Folder (relative to `backend/`) where the embedding model is stored. Empty uses fastembed's default cache folder. Used on Render. |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -410,6 +415,7 @@ These live in `backend/app/config.py`.
 | `MAX_PAGES` | 100 | Most pages with text allowed |
 | `MAX_SESSIONS` | 5 | Visitors' documents kept in memory at once |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Embedding model |
+| `EMBEDDING_THREADS` | 1 | CPU threads for the embedding model (1 is best on small servers) |
 | `LLM_TEMPERATURE` | 0.1 | Low means factual and stable |
 | `LLM_MAX_TOKENS` | 1500 | Output limit (the model's thinking tokens count too) |
 | `LLM_REASONING_EFFORT` | `low` | Faster, cheaper answers |
@@ -606,14 +612,14 @@ Environment variables on Render:
 |---|---|
 | `GROQ_API_KEY` | your Groq key |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` |
-| `ALLOWED_ORIGINS` | your Vercel address (set after step 3) |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,https://rag-chatbot-jgo6.vercel.app` (your Vercel address, set after step 3) |
 | `PYTHON_VERSION` | the Python version you used locally, for example `3.13.9` |
 | `MODEL_CACHE_DIR` | `.model_cache` (the model is downloaded during the build and kept with the app) |
 
 Notes for the free plan:
 
 - The free server **sleeps after about 15 minutes without traffic**. The first request after sleeping can take around a minute. The app shows a hint for this.
-- The free web service has **512 MB of memory and a very small share of a CPU (about 0.1)**. PyTorch plus the embedding model is heavy for that, so loading can be slow or the server can run out of memory. If that happens, in this order: (1) use the **CPU-only PyTorch** build (add `--extra-index-url https://download.pytorch.org/whl/cpu` at the top of `requirements.txt`); (2) run the same `all-MiniLM-L6-v2` model through **ONNX** (for example with the `fastembed` library), which uses far less memory; (3) use a host with more memory.
+- The free web service has **512 MB of memory and a very small share of a CPU (about 0.1)**. The first version of this project used PyTorch (`sentence-transformers`), and an upload returned a **502** because the server could not hold it. The same `all-MiniLM-L6-v2` model now runs through **ONNX Runtime** (`fastembed`), which fits comfortably. Do not add PyTorch back.
 - Documents live in memory only, so a restart or sleep removes them. Visitors simply upload again.
 
 ### 3. Frontend on Vercel
@@ -624,15 +630,24 @@ Import the same GitHub repository.
 |---|---|
 | Framework | Next.js |
 | Root Directory | `frontend` |
-| Environment variable | `NEXT_PUBLIC_API_URL` = your Render address, for example `https://rag-chatbot-api.onrender.com` (no trailing slash needed) |
+| Environment variable | `NEXT_PUBLIC_API_URL` = your Render address, for example `https://rag-chatbot-slwm.onrender.com` (no trailing slash). Save it as a **Config** variable, not a Secret. |
+
+After adding or changing an environment variable on Vercel, click **Redeploy** (Deployments, then the three dots on the latest one), because Vercel reads `NEXT_PUBLIC_` values only while building.
 
 ### 4. Connect them
 
-Copy your Vercel address into Render's `ALLOWED_ORIGINS` (for example `https://your-app.vercel.app`) and redeploy the backend. Without this, the browser blocks the requests (CORS).
+Copy your Vercel address into Render's `ALLOWED_ORIGINS`, next to `http://localhost:3000`, separated by a comma and with no trailing slash (this project uses `http://localhost:3000,https://rag-chatbot-jgo6.vercel.app`). Render redeploys by itself after you save. Without this, the browser blocks the requests (CORS).
 
 ### 5. Final live test
 
 Open the Vercel address, upload a PDF, ask a question, ask an unrelated question, click Clear, and try the theme dropdown on your phone.
+
+**Live addresses**
+
+| Part | Address |
+|---|---|
+| Website (Vercel) | <https://rag-chatbot-jgo6.vercel.app> |
+| API (Render) | <https://rag-chatbot-slwm.onrender.com> (interactive docs at `/docs`) |
 
 ---
 
@@ -658,6 +673,10 @@ Open the Vercel address, upload a PDF, ask a question, ask an unrelated question
 | `npm ci` says `Missing: @emnapi/... from lock file` | The lockfile is out of sync (this can happen when packages are added on another operating system). In `frontend`, delete `node_modules` and `package-lock.json`, run `npm install`, check with `npm ci`, and commit the new lockfile. |
 | Answers show raw `**` symbols | You have an old frontend. Run `npm install` in `frontend` (it adds `react-markdown` and `remark-gfm`) and restart `npm run dev`. |
 | Plain `uvicorn ...` fails again and again | It starts the wrong Python. Use `run.bat` (see Installation) or `venv\Scripts\python.exe -m uvicorn app.main:app --reload`. |
+| Live site says "Cannot reach the server" | Check in this order: (1) Render's `ALLOWED_ORIGINS` contains your exact Vercel address (https, no trailing slash); (2) Vercel's `NEXT_PUBLIC_API_URL` is your Render address, saved as a **Config** variable, and you clicked **Redeploy** afterwards. Press F12 and read the console: "blocked by CORS policy" points to (1), `localhost:8000` points to (2). |
+| Upload returns **502** on Render | The server most likely ran out of memory (this happened with PyTorch on the free 512 MB plan). Use the ONNX (`fastembed`) version in this repository and look at the Render **Logs** tab. |
+| `npm ci` shows `ERESOLVE`, or `eslint-config-next` changed by itself | `npm audit fix --force` can downgrade packages and break the project. Never use `--force`. Keep `eslint-config-next` at the same version as `next` in `package.json`, restore the files with `git checkout -- frontend/package.json frontend/package-lock.json`, and reinstall. |
+| `npm audit` reports a critical `next` vulnerability | Upgrade Next.js to the patched version (this project uses 16.4.3) together with the matching `eslint-config-next`, then run `npm audit fix` (without `--force`). |
 
 ---
 
@@ -669,7 +688,7 @@ Being honest about limits is part of a good design:
 - **One document per visitor.** Uploading a new PDF replaces the previous one.
 - **No conversation memory.** Each question is answered on its own. A follow-up like "and what about page 3?" has no context.
 - **Memory-only storage.** Documents disappear when the server restarts or sleeps.
-- **Free-tier behavior.** The first request after sleep is slow, and the 512 MB memory limit is tight for PyTorch.
+- **Free-tier behavior.** The first request after sleep can take about a minute, and the 512 MB memory limit rules out heavy libraries such as PyTorch (this project uses ONNX instead).
 - **Limits on size.** 10 MB and 100 pages per PDF, and only the 5 most recent visitors are kept in memory.
 - **Layout is not understood.** Tables, multi-column pages, charts and images may be extracted as messy text.
 - **English-focused embeddings.** `all-MiniLM-L6-v2` works best for English documents and questions.
@@ -702,7 +721,7 @@ Being honest about limits is part of a good design:
 
 ### 60-second pitch
 
-> "I built a RAG chatbot where you upload a PDF and ask questions about it. The backend is FastAPI. It reads the PDF with PyMuPDF, splits each page into 500-character chunks with 100 characters of overlap, turns the chunks into 384-number embeddings with the MiniLM model, and stores them in a FAISS index. When you ask a question, I embed it, find the 5 most similar chunks, and send them to GPT-OSS 120B on Groq with a strict prompt that says to answer only from the context. The response includes the answer and the source pages. If the answer is not in the document, it says so and shows no sources. The frontend is Next.js with Tailwind and a theme switcher. It is built for free hosting, with the backend on Render and the frontend on Vercel: the model is small, the index lives in memory, each visitor has their own session, and the Groq key never leaves the server."
+> "I built a RAG chatbot where you upload a PDF and ask questions about it. The backend is FastAPI. It reads the PDF with PyMuPDF, splits each page into 500-character chunks with 100 characters of overlap, turns the chunks into 384-number embeddings with the MiniLM model running on ONNX Runtime, and stores them in a FAISS index. When you ask a question, I embed it, find the 5 most similar chunks, and send them to GPT-OSS 120B on Groq with a strict prompt that says to answer only from the context. The response includes the answer and the source pages. If the answer is not in the document, it says so and shows no sources. The frontend is Next.js with Tailwind and a theme switcher. I deployed it on free hosting, with the backend on Render and the frontend on Vercel. My first version used PyTorch and failed on Render's 512 MB server, so I switched to the same model on ONNX Runtime and it fit. The index lives in memory, each visitor has their own session, and the Groq key never leaves the server."
 
 ### Key points to remember
 
@@ -713,6 +732,7 @@ Being honest about limits is part of a good design:
 - **How are sources found?** Every chunk carries its page number from PyMuPDF. The top chunks' pages are returned with the answer.
 - **How are hallucinations reduced?** Strict prompt, fixed "not found" sentence, low temperature, skipping the LLM when nothing is retrieved, ignoring instructions hidden in documents, and tests for all of this.
 - **Biggest trade-offs:** in-memory storage (simple and free, but lost on restart), no OCR, no chat memory.
+- **A real problem I solved:** the PyTorch version returned a 502 on upload on Render's free 512 MB server, which pointed to memory. I switched to the same model on ONNX Runtime (`fastembed`), re-ran every test (same scores, same answers), and the deployment worked. I also pinned exact package versions so the server uses what I tested, and upgraded Next.js after `npm audit` found a critical issue.
 - **How would you improve it for production?** Persistent storage, a re-ranker, hybrid search, streaming, authentication and rate limits, automated evaluation, Docker and CI.
 
 ---
@@ -729,7 +749,9 @@ Being honest about limits is part of a good design:
 | Interface | Black-and-white default with a Theme dropdown (Black or White mode plus six colors), responsive layout |
 | Answer formatting | Markdown answers (bold, lists, code, tables) rendered safely, with no raw HTML |
 | GitHub | Code pushed, secrets kept out, lockfile fixed so `npm ci` works |
-| Next | Deployment on Render and Vercel (a lighter ONNX embedding runtime is the fallback if Render's free memory is too small), then the live demo link and screenshots |
+| Security and dependencies | Next.js upgraded to the patched 16.4.3 (0 audit vulnerabilities), exact versions pinned in `requirements.txt` |
+| Deployment | Backend on Render (free) and frontend on Vercel (free). PyTorch failed on the free server, so embeddings now run through ONNX (`fastembed`) with the same model |
+| Next | Screenshots, and the optional improvements listed above |
 
 ---
 
